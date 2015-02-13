@@ -1,28 +1,37 @@
-#!/usr/bin/env boot
-
-#tailrecursion.boot.core/version "2.5.0"
-
-(load-file "../build.util.clj")
-(require '[build.util :as build])
-
 (set-env!
-  :dependencies (build/deps)
-  :out-path     "resources/public"
-  :src-paths    #{"src"})
+  :dependencies  '[[adzerk/boot-cljs      "0.0-2727-0" :scope "test"]
+                   [adzerk/boot-cljs-repl "0.1.8"      :scope "test"]
+                   [adzerk/boot-reload    "0.2.4"      :scope "test"]
+                   [pandeiro/boot-http    "0.6.1"      :scope "test"]
+                   [tailrecursion/hoplon  "6.0.0-SNAPSHOT"]
+                   [hoplon/hoplon-google-maps "3.18.0"]
+                   [markdown-clj          "0.9.62"]]
+  :source-paths   #{"src"}
+  :asset-paths    #{"resources/assets"}
+  :target-path    "resources/public")
 
 (require
-  '[tailrecursion.hoplon.boot      :refer :all]
-  '[tailrecursion.boot.task.notify :refer [hear]]
-  '[tailrecursion.boot.task.ring   :refer [dev-server]])
+  '[adzerk.boot-cljs :refer [cljs]]
+  '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]]
+  '[adzerk.boot-reload :refer [reload]]
+  '[pandeiro.boot-http :refer [serve]]
+  '[tailrecursion.hoplon.boot :refer [hoplon]])
 
-(add-sync! (get-env :out-path) #{"assets"})
-
-(deftask development
-  "Build project for development, local dev server."
+(deftask dev
+  "Build hoplon.io for local development."
   []
-  (comp (watch) (hear) (hoplon {:pretty-print true :prerender false}) (dev-server)))
+  (comp
+    (watch)
+    (hoplon :pretty-print true)
+    (cljs :optimizations :none :unified-mode true)
+    (serve :dir (get-env :target-path))
+    (speak)))
 
-(deftask production
-  "Build project for production."
+(deftask prod
+  "Build hoplon.io for production deployment."
   []
-  (hoplon {:optimizations :advanced}))
+  (comp
+    (watch)
+    (hoplon)
+    (cljs :optimizations :advanced)
+    (serve :dir (get-env :target-path))))
